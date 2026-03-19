@@ -34,6 +34,22 @@ const CheckoutPage = () => {
       return;
     }
 
+    if (!formData.name || !formData.email || !formData.line1 || !formData.city || !formData.postcode) {
+      toast.error("Please complete all required fields.");
+      return;
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(formData.email)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
+    if (formData.phone && formData.phone.length < 7) {
+      toast.error("Please enter a valid contact number.");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch("/api/checkout", {
@@ -165,9 +181,15 @@ const CheckoutPage = () => {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4 p-4 bg-white/5 text-[10px] text-white/40 leading-relaxed uppercase tracking-widest">
-                  <Info size={16} className="text-accent flex-shrink-0" />
-                  <p>Estimated delivery time: 45 - 60 minutes within London zones.</p>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-4 p-4 bg-white/5 text-[10px] text-white/40 leading-relaxed uppercase tracking-widest">
+                    <Info size={16} className="text-accent flex-shrink-0" />
+                    <p>Estimated delivery time: 45 - 60 minutes within London zones.</p>
+                  </div>
+                  <div className="flex items-start gap-4 p-4 bg-white/5 text-[10px] text-white/40 leading-relaxed uppercase tracking-widest">
+                    <Lock size={16} className="text-accent flex-shrink-0" />
+                    <p>Payments are processed securely by Stripe. We never store your card details.</p>
+                  </div>
                 </div>
               </div>
             </div>
