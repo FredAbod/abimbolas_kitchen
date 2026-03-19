@@ -22,90 +22,28 @@ const MenuPage = () => {
   const [filteredProducts, setFilteredProducts] = useState<IProduct[]>([]);
   const [activeCategory, setActiveCategory] = useState("all");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    // In a real app, this fetches from /api/products
-    // For now, we'll simulate a fetch with demo data
     const fetchProducts = async () => {
       setLoading(true);
+      setError(null);
       try {
-        // Mock data for immediate preview
-        const demoData: IProduct[] = [
-          {
-            _id: "1",
-            title: "Smoky Party Jollof",
-            description: "Long grain parboiled rice cooked in a rich, spicy tomato and pepper base with the perfect signature grill smoke.",
-            price: 18.50,
-            category: "rice",
-            type: "dish",
-            isAvailable: true,
-            isFeatured: true,
-            allergens: ["None"],
-            imageUrl: "https://images.unsplash.com/photo-1547592166-23ac45744acd?q=80&w=2071&auto=format&fit=crop"
-          },
-          {
-            _id: "2",
-            title: "Suya Grilled Wings",
-            description: "Tender chicken wings marinated in our secret Yaji spice blend and flame-grilled to perfection. Served with red onions.",
-            price: 12.00,
-            category: "grills",
-            type: "dish",
-            isAvailable: true,
-            isFeatured: false,
-            allergens: ["Nuts"],
-            imageUrl: "https://images.unsplash.com/photo-1527477396000-e27163b481c2?q=80&w=2106&auto=format&fit=crop"
-          },
-          {
-            _id: "3",
-            title: "Egusi Soup with Pounded Yam",
-            description: "Melon seeds ground and cooked with spinach, palm oil, and various proteins (beef, cow skin, tripe). Served with smooth pounded yam.",
-            price: 22.00,
-            category: "soups",
-            type: "dish",
-            isAvailable: true,
-            isFeatured: true,
-            allergens: ["Fish"],
-            imageUrl: "https://images.unsplash.com/photo-1604329760661-e71dc83f8f26?q=80&w=2070&auto=format&fit=crop"
-          },
-          {
-            _id: "4",
-            title: "Assorted Meat Grill Platter",
-            description: "A grand selection of beef, chicken, and goat meat, seasoned with traditional spices and grilled over open flame.",
-            price: 45.00,
-            category: "platters",
-            type: "dish",
-            isAvailable: true,
-            isFeatured: false,
-            imageUrl: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=1974&auto=format&fit=crop"
-          },
-          {
-            _id: "5",
-            title: "Beef Fried Rice",
-            description: "Stir-fried rice with tender beef strips, mixed vegetables, and a hint of sesame oil for a savory African-fusion taste.",
-            price: 16.50,
-            category: "rice",
-            type: "dish",
-            isAvailable: true,
-            isFeatured: false,
-            imageUrl: "https://images.unsplash.com/photo-1603133872878-684f208fb84b?q=80&w=1925&auto=format&fit=crop"
-          },
-          {
-            _id: "6",
-            title: "Zobo Native Juice",
-            description: "Refreshing hibiscus flower petals brewed with pineapple, ginger, and cloves. Naturally sweetened and chilled.",
-            price: 5.50,
-            category: "drinks",
-            type: "dish",
-            isAvailable: true,
-            isFeatured: false,
-            imageUrl: "https://images.unsplash.com/photo-1610631882980-60b6bbfda643?q=80&w=1974&auto=format&fit=crop"
-          }
-        ];
-        
-        setProducts(demoData);
-        setFilteredProducts(demoData);
-      } catch (error) {
-        console.error("Failed to fetch products", error);
+        const res = await fetch("/api/products", {
+          cache: "no-store",
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to load menu. Please try again.");
+        }
+
+        const data: IProduct[] = await res.json();
+        setProducts(data);
+        setFilteredProducts(data);
+      } catch (err: any) {
+        console.error("Failed to fetch products", err);
+        setError(err.message || "Something went wrong loading the menu.");
       } finally {
         setLoading(false);
       }
@@ -115,12 +53,25 @@ const MenuPage = () => {
   }, []);
 
   useEffect(() => {
-    if (activeCategory === "all") {
-      setFilteredProducts(products);
-    } else {
-      setFilteredProducts(products.filter(p => p.category === activeCategory));
+    let updated = [...products];
+
+    if (activeCategory !== "all") {
+      updated = updated.filter((p) => p.category === activeCategory);
     }
-  }, [activeCategory, products]);
+
+    if (searchTerm.trim()) {
+      const term = searchTerm.trim().toLowerCase();
+      updated = updated.filter((p) => {
+        return (
+          p.title.toLowerCase().includes(term) ||
+          p.description.toLowerCase().includes(term) ||
+          p.category.toLowerCase().includes(term)
+        );
+      });
+    }
+
+    setFilteredProducts(updated);
+  }, [activeCategory, products, searchTerm]);
 
   return (
     <main className="min-h-screen bg-secondary">
@@ -170,7 +121,9 @@ const MenuPage = () => {
             <input 
               type="text" 
               placeholder="SEARCH DISHES..." 
-              className="w-full bg-white/5 border border-white/10 py-3 pl-12 pr-4 text-xs tracking-widest text-white focus:outline-none focus:border-accent transition-colors transition-all"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 py-3 pl-12 pr-4 text-xs tracking-widest text-white placeholder:text-white/30 focus:outline-none focus:border-accent transition-colors transition-all"
             />
           </div>
         </div>
@@ -179,6 +132,13 @@ const MenuPage = () => {
       {/* Grid */}
       <section className="py-20">
         <div className="container mx-auto px-6 md:px-20">
+          {error && !loading && (
+            <div className="mb-10 rounded-lg border border-red-500/40 bg-red-500/5 px-6 py-4 text-sm text-red-200">
+              <p className="font-semibold tracking-[0.2em] uppercase text-xs mb-1">Unable to load menu</p>
+              <p>{error}</p>
+            </div>
+          )}
+
           {loading ? (
             <div className="flex flex-col items-center justify-center py-40 gap-4">
               <Loader2 className="animate-spin text-accent" size={40} />

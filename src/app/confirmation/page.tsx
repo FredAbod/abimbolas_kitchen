@@ -13,12 +13,34 @@ const ConfirmationContent = () => {
   const orderId = searchParams.get("order_id");
   const { clearCart } = useCart();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Clear cart on successful purchase
-    clearCart();
-    // Simulate loading for verification logic
-    setTimeout(() => setLoading(false), 2000);
+    const verifyOrder = async () => {
+      try {
+        if (!orderId) {
+          throw new Error("No order ID found in the URL.");
+        }
+
+        const res = await fetch(`/api/orders?id=${orderId}`, {
+          cache: "no-store",
+        });
+
+        if (!res.ok) {
+          throw new Error("We couldn't verify your order yet. Please check your email for confirmation details.");
+        }
+
+        // In future we can use the response to show full order details
+        clearCart();
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message || "Something went wrong while confirming your order.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    verifyOrder();
   }, [clearCart]);
 
   return (
@@ -41,6 +63,12 @@ const ConfirmationContent = () => {
              <div className="absolute top-0 right-0 p-4">
                 <span className="text-[10px] text-accent font-bold uppercase tracking-widest opacity-20">Order #{orderId?.slice(-6).toUpperCase()}</span>
              </div>
+
+             {error && (
+               <div className="mb-6 rounded-md border border-red-500/40 bg-red-500/5 px-4 py-3 text-sm text-red-200">
+                 {error}
+               </div>
+             )}
 
              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                <div className="space-y-4">
@@ -82,10 +110,13 @@ const ConfirmationContent = () => {
             >
               Back to Menu
             </Link>
-            <button className="px-10 py-5 border border-white/20 text-white font-bold uppercase tracking-[0.2em] text-xs hover:bg-white/10 transition-all flex items-center justify-center gap-3">
+            <Link
+              href={`/tracking/${orderId}`}
+              className="px-10 py-5 border border-white/10 text-white hover:bg-white/5 font-bold uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-3 transition-all"
+            >
               <Search size={16} />
-              Track Order
-            </button>
+              Track Live Order
+            </Link>
           </div>
         </div>
       </div>

@@ -46,10 +46,42 @@ const services = [
 ];
 
 const ServicesPage = () => {
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast.success("Inquiry sent successfully! We will contact you shortly.");
-    (e.target as HTMLFormElement).reset();
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    const payload = {
+      customerName: String(formData.get("name") || ""),
+      customerEmail: String(formData.get("email") || ""),
+      serviceType: String(formData.get("serviceType") || ""),
+      eventDate: String(formData.get("eventDate") || ""),
+      message: String(formData.get("message") || ""),
+    };
+
+    if (!payload.customerName || !payload.customerEmail || !payload.eventDate) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to send inquiry. Please try again.");
+      }
+
+      toast.success("Inquiry sent successfully! We will contact you within 24 hours.");
+      form.reset();
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Something went wrong. Please try again.");
+    }
   };
 
   return (
@@ -141,34 +173,56 @@ const ServicesPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-2">
                   <label className="text-[10px] uppercase tracking-widest text-white/40 font-bold">Full Name</label>
-                  <input required type="text" className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-accent transition-colors" />
+                  <input
+                    required
+                    name="name"
+                    type="text"
+                    className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-accent transition-colors"
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] uppercase tracking-widest text-white/40 font-bold">Email Address</label>
-                  <input required type="email" className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-accent transition-colors" />
+                  <input
+                    required
+                    name="email"
+                    type="email"
+                    className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-accent transition-colors"
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-2">
                   <label className="text-[10px] uppercase tracking-widest text-white/40 font-bold">Service Type</label>
-                  <select className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-accent transition-colors appearance-none">
-                    <option className="bg-secondary">Catering Services</option>
-                    <option className="bg-secondary">Event Platters</option>
-                    <option className="bg-secondary">Meal Prep</option>
-                    <option className="bg-secondary">Private Chef</option>
-                    <option className="bg-secondary">Custom Menu</option>
+                  <select
+                    name="serviceType"
+                    className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-accent transition-colors appearance-none"
+                  >
+                    <option value="catering" className="bg-secondary">Catering Services</option>
+                    <option value="event-platters" className="bg-secondary">Event Platters</option>
+                    <option value="meal-prep" className="bg-secondary">Meal Prep</option>
+                    <option value="private-chef" className="bg-secondary">Private Chef</option>
+                    <option value="custom-menu" className="bg-secondary">Custom Menu</option>
                   </select>
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] uppercase tracking-widest text-white/40 font-bold">Event Date</label>
-                  <input required type="date" className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-accent transition-colors" />
+                  <input
+                    required
+                    name="eventDate"
+                    type="date"
+                    className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-accent transition-colors"
+                  />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <label className="text-[10px] uppercase tracking-widest text-white/40 font-bold">Additional Details</label>
-                <textarea rows={4} className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-accent transition-colors"></textarea>
+                <textarea
+                  name="message"
+                  rows={4}
+                  className="w-full bg-white/5 border border-white/10 p-4 text-white focus:outline-none focus:border-accent transition-colors"
+                ></textarea>
               </div>
 
               <button className="w-full py-5 bg-primary text-white font-bold uppercase tracking-[0.3em] hover:bg-primary/90 transition-all">

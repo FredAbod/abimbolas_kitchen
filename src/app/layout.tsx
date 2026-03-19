@@ -27,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${playfair.variable} ${inter.variable} font-sans antialiased text-white selection:bg-accent selection:text-secondary`}>
+      <body suppressHydrationWarning className={`${playfair.variable} ${inter.variable} font-sans antialiased text-white selection:bg-accent selection:text-secondary`}>
         <SessionProvider>
           <CartProvider>
             {children}

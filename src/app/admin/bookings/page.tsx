@@ -24,6 +24,44 @@ const AdminBookingsPage = () => {
     }
   };
 
+  const updateBookingStatus = async (bookingId: string, status: string) => {
+    try {
+      const res = await fetch("/api/bookings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId, status }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update booking");
+      }
+
+      toast.success("Booking updated");
+      fetchBookings();
+    } catch (error) {
+      console.error(error);
+      toast.error("Could not update booking");
+    }
+  };
+
+  const deleteBooking = async (bookingId: string) => {
+    try {
+      const res = await fetch(`/api/bookings?id=${bookingId}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to delete booking");
+      }
+
+      toast.success("Booking deleted");
+      fetchBookings();
+    } catch (error) {
+      console.error(error);
+      toast.error("Could not delete booking");
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch(status) {
       case 'pending': return 'bg-accent/10 text-accent';
@@ -95,8 +133,18 @@ const AdminBookingsPage = () => {
                   Received {new Date(booking.createdAt).toLocaleDateString()}
                 </div>
                 <div className="flex gap-4">
-                   <button className="text-accent text-[10px] font-bold uppercase tracking-widest hover:underline">Mark Contacted</button>
-                   <button className="text-white/40 hover:text-red-500 transition-colors"><Trash2 size={16} /></button>
+                  <button
+                    onClick={() => updateBookingStatus(booking._id, booking.status === "contacted" ? "pending" : "contacted")}
+                    className="text-accent text-[10px] font-bold uppercase tracking-widest hover:underline"
+                  >
+                    {booking.status === "contacted" ? "Mark Pending" : "Mark Contacted"}
+                  </button>
+                  <button
+                    onClick={() => deleteBooking(booking._id)}
+                    className="text-white/40 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               </div>
             </div>

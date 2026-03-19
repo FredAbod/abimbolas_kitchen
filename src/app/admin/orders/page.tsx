@@ -9,6 +9,9 @@ const AdminOrdersPage = () => {
   const [orders, setOrders] = useState<IOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeStatus, setActiveStatus] = useState<"all" | "pending" | "confirmed" | "out_for_delivery" | "completed">("all");
+
+  const [selectedOrder, setSelectedOrder] = useState<IOrder | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -36,16 +39,25 @@ const AdminOrdersPage = () => {
       if (res.ok) {
         toast.success(`Order ${newStatus}!`);
         fetchOrders();
+        if (selectedOrder && selectedOrder._id === orderId) {
+          setSelectedOrder({ ...selectedOrder, fulfillmentStatus: newStatus as any });
+        }
       }
     } catch (error) {
       toast.error("Status update failed");
     }
   };
 
-  const filteredOrders = orders.filter(order => 
-    order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    order._id?.includes(searchTerm)
-  );
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch =
+      order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order._id?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      activeStatus === "all" ? true : order.fulfillmentStatus === activeStatus;
+
+    return matchesSearch && matchesStatus;
+  });
 
   const getStatusColor = (status: string) => {
     switch(status) {
@@ -59,7 +71,7 @@ const AdminOrdersPage = () => {
   };
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-12 relative">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
           <div>
             <h1 className="text-4xl font-serif font-bold text-white mb-2">Order <span className="text-accent italic">Fulfillment</span></h1>
@@ -81,9 +93,17 @@ const AdminOrdersPage = () => {
         {/* Orders Table */}
         <div className="bg-secondary border border-white/5">
           <div className="p-8 border-b border-white/5 flex gap-4 overflow-x-auto pb-4 md:pb-8 no-scrollbar">
-            {['all', 'pending', 'confirmed', 'out_for_delivery', 'completed'].map((tab) => (
-              <button key={tab} className="whitespace-nowrap px-6 py-2 bg-white/5 text-[9px] font-bold uppercase tracking-widest text-white/40 hover:text-white transition-all">
-                {tab.replace(/_/g, ' ')}
+            {["all", "pending", "confirmed", "out_for_delivery", "completed"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveStatus(tab as typeof activeStatus)}
+                className={`whitespace-nowrap px-6 py-2 text-[9px] font-bold uppercase tracking-widest transition-all ${
+                  activeStatus === tab
+                    ? "bg-accent text-secondary"
+                    : "bg-white/5 text-white/40 hover:text-white"
+                }`}
+              >
+                {tab.replace(/_/g, " ")}
               </button>
             ))}
           </div>
@@ -140,7 +160,7 @@ const AdminOrdersPage = () => {
                         {order.fulfillmentStatus === 'out_for_delivery' && (
                           <button onClick={() => updateStatus(order._id!, 'completed')} className="p-2 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white transition-all" title="Mark Completed"><PackageCheck size={16} /></button>
                         )}
-                        <button className="p-2 bg-white/5 text-white/40 hover:text-white transition-all"><Eye size={16} /></button>
+                        <button onClick={() => setSelectedOrder(order)} className="p-2 bg-white/5 text-white/40 hover:text-white transition-all"><Eye size={16} /></button>
                       </div>
                     </td>
                   </tr>
@@ -149,6 +169,88 @@ const AdminOrdersPage = () => {
             </table>
           </div>
         </div>
+
+        {/* Order Details Modal */}
+        {selectedOrder && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-charcoal/90 backdrop-blur-sm" onClick={() => setSelectedOrder(null)} />
+            <div className="bg-secondary border border-white/5 w-full max-w-3xl relative z-10 shadow-2xl flex flex-col max-h-[90vh]">
+              {/* Modal Header */}
+              <div className="p-6 md:p-8 border-b border-white/5 flex justify-between items-start">
+                <div>
+                  <h2 className="text-2xl font-serif text-white mb-1">Order Details</h2>
+                  <p className="text-accent text-xs font-bold uppercase tracking-widest">#{selectedOrder._id?.toUpperCase()}</p>
+                </div>
+                <button onClick={() => setSelectedOrder(null)} className="text-white/40 hover:text-white p-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar space-y-8">
+                {/* Customer Info Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-4">
+                     <h3 className="text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] border-b border-white/5 pb-2">Customer</h3>
+                     <div className="space-y-1">
+                        <p className="text-white font-medium">{selectedOrder.customerName}</p>
+                        <p className="text-white/60 text-sm">{selectedOrder.customerEmail}</p>
+                        {selectedOrder.customerPhone && <p className="text-white/60 text-sm">{selectedOrder.customerPhone}</p>}
+                     </div>
+                  </div>
+                  <div className="space-y-4">
+                     <h3 className="text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] border-b border-white/5 pb-2">Delivery</h3>
+                     <div className="space-y-1 text-sm text-white/80">
+                        <p>{selectedOrder.deliveryAddress?.line1}</p>
+                        {selectedOrder.deliveryAddress?.line2 && <p>{selectedOrder.deliveryAddress?.line2}</p>}
+                        <p>{selectedOrder.deliveryAddress?.city}, {selectedOrder.deliveryAddress?.postcode}</p>
+                     </div>
+                  </div>
+                </div>
+
+                {/* Items List */}
+                <div className="space-y-4">
+                   <h3 className="text-white/40 text-[10px] font-bold uppercase tracking-[0.2em] border-b border-white/5 pb-2">Items</h3>
+                   <div className="space-y-4">
+                     {selectedOrder.items.map((item, idx) => (
+                       <div key={idx} className="flex justify-between items-center bg-white/5 p-4">
+                         <div className="flex items-center gap-4">
+                           <span className="w-8 h-8 flex items-center justify-center bg-charcoal text-white text-xs font-bold">{item.quantity}x</span>
+                           <span className="text-white font-medium">{item.title}</span>
+                         </div>
+                         <span className="text-accent font-bold">£{(item.price * item.quantity).toFixed(2)}</span>
+                       </div>
+                     ))}
+                   </div>
+                   <div className="flex justify-between items-center py-4 border-t border-white/10 mt-4">
+                     <span className="text-white font-serif text-xl">Total Paid</span>
+                     <span className="text-accent font-serif text-2xl font-bold">£{selectedOrder.totalAmount.toFixed(2)}</span>
+                   </div>
+                </div>
+
+                {/* Status Controls */}
+                <div className="space-y-4 bg-charcoal/30 p-6 border border-white/5">
+                  <h3 className="text-white/40 text-[10px] font-bold uppercase tracking-[0.2em]">Update Order Status</h3>
+                  <div className="flex flex-wrap gap-4">
+                    {['pending', 'confirmed', 'processing', 'out_for_delivery', 'completed'].map((status) => (
+                      <button
+                        key={status}
+                        onClick={() => updateStatus(selectedOrder._id!, status)}
+                        className={`px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all ${
+                          selectedOrder.fulfillmentStatus === status 
+                            ? 'bg-accent text-secondary' 
+                            : 'bg-white/5 text-white/40 hover:text-white'
+                        }`}
+                      >
+                        {status.replace(/_/g, ' ')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
   );
 };

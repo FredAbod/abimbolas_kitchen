@@ -12,7 +12,7 @@ interface CartDrawerProps {
 }
 
 const CartDrawer = ({ isOpen, onClose }: CartDrawerProps) => {
-  const { cart, removeFromCart, cartTotal } = useCart();
+  const { cart, removeFromCart, updateQuantity, cartTotal } = useCart();
 
   return (
     <AnimatePresence>
@@ -87,9 +87,21 @@ const CartDrawer = ({ isOpen, onClose }: CartDrawerProps) => {
                       </div>
                       <p className="text-white/40 text-[10px] uppercase tracking-widest mb-4">{item.category}</p>
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-white/60 flex items-center gap-3">
-                          <span className="text-xs">Qty:</span> {item.quantity}
-                        </span>
+                        <div className="flex items-center gap-4 bg-white/5 px-2 py-1">
+                          <button 
+                            onClick={() => updateQuantity(item._id!, item.quantity - 1)}
+                            className="text-white/40 hover:text-white transition-colors px-2"
+                          >
+                            -
+                          </button>
+                          <span className="text-white font-bold w-4 text-center">{item.quantity}</span>
+                          <button 
+                            onClick={() => updateQuantity(item._id!, item.quantity + 1)}
+                            className="text-white/40 hover:text-white transition-colors px-2"
+                          >
+                            +
+                          </button>
+                        </div>
                         <span className="text-accent font-bold">£{(item.price * item.quantity).toFixed(2)}</span>
                       </div>
                     </div>

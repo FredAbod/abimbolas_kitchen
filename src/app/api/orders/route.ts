@@ -5,6 +5,17 @@ import Order from "@/models/Order";
 export async function GET(req: NextRequest) {
   await dbConnect();
   try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (id) {
+      const order = await Order.findById(id);
+      if (!order) {
+        return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      }
+      return NextResponse.json(order);
+    }
+
     const orders = await Order.find({}).sort({ createdAt: -1 });
     return NextResponse.json(orders);
   } catch (error: any) {
